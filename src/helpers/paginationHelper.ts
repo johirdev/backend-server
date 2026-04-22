@@ -19,7 +19,7 @@ type IOptionReturn = {
 // pagination query if user send value Or by deafult resive value
 const calculationPagination = (Option: IOptionPagination): IOptionReturn => {
   const page = Number(Option.page) || 1;
-  const limit = Number(Option.limit) || 500;
+  const limit = Number(Option.limit) || 20;
   const skip = (page - 1) * limit;
   const sortBy = Option.sortBy || 'createdAt';
   const sortOrder: SortOrder = Option.sortOrder || 'desc';

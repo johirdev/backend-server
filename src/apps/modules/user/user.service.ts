@@ -1,0 +1,198 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import httpStatus from 'http-status';
+import { ApiError } from '../../../errors/ApiError';
+import { ISearchUser, IUser, IUserLogin } from './user.interface';
+import { UsersModel } from './user.model';
+import bcrypt from 'bcrypt';
+import { Secret } from 'jsonwebtoken';
+import config from '../../../config';
+import { jwtHelpers } from '../../../helpers/jwtHelpers';
+
+import { handleMongoError } from '../../../helpers/HendelMongosError';
+import { IPaginationOpton } from '../../../interfaces/pagination';
+import { IGenaricRespons } from '../../../interfaces/common';
+import { userSearchableFields } from './user.constant';
+import { HelperPagination } from '../../../helpers/paginationHelper';
+import { SortOrder } from 'mongoose';
+
+// -----> create A User business logic ------->
+const createdUser = async (user: IUser): Promise<IUserLogin | null> => {
+  const { name, email, password, role, interests } = user;
+
+  const sanitizedEmail = email?.trim().toLowerCase();
+  // Trim and lowercase email before querying the database
+  if (sanitizedEmail) {
+    const existingUser = await UsersModel.findOne({ email: sanitizedEmail });
+
+    if (existingUser) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        'User already exists with this email.',
+        ''
+      );
+    }
+  }
+
+  const hashedPassword = await bcrypt.hash(
+    password,
+    Number(config.bcrypt_salt_round)
+  );
+
+  const userToCreate = {
+    name,
+    email: sanitizedEmail,
+    role: role || 'user',
+    interests: Array.isArray(interests)
+      ? interests
+      : interests
+      ? [interests]
+      : [],
+    password: hashedPassword,
+  };
+
+  let created = null;
+  try {
+    created = await UsersModel.create(userToCreate);
+  } catch (error) {
+    handleMongoError(error, 'already exists.', 'Please use a different');
+    throw new ApiError(500, 'User creation failed', '');
+  }
+
+  if (!created) {
+    throw new ApiError(500, 'User creation failed', '');
+  }
+
+  const { _id } = created;
+  const id = _id.toString();
+
+  const accessToken = jwtHelpers.createToken(
+    {
+      id,
+      name,
+      email: sanitizedEmail,
+      role: role || 'user',
+      interests: Array.isArray(interests)
+        ? interests
+        : interests
+        ? [interests]
+        : [],
+    },
+    config.jwt.secret as Secret,
+    config.jwt.expires_in as string
+  );
+
+  const refreshToken = jwtHelpers.createToken(
+    { id },
+    config.jwt.secret as Secret,
+    config.jwt.refresh_expires_in as string
+  );
+
+  return {
+    accessToken,
+    refreshToken,
+  };
+};
+
+const getAllUsers = async (
+  filtering: Record<string, any>,
+  paginationOption: IPaginationOpton
+): Promise<IGenaricRespons<ISearchUser[]> | null> => {
+  const { searchTerm, start_date, end_date, ...filtersData } = filtering;
+
+  // Ensure searchTerm is a string
+  const searchTermString = typeof searchTerm === 'string' ? searchTerm : '';
+
+  // Build the query conditions for the database
+  const andConditions: Record<string, any>[] = [];
+
+  // Add search condition
+  if (searchTermString) {
+    andConditions.push({
+      $or: userSearchableFields?.map(field => ({
+        [field]: {
+          $regex: searchTermString,
+          $options: 'i',
+        },
+      })),
+    });
+  }
+
+  // ✅ Date range filter
+  if (start_date || end_date) {
+    const dateFilter: Record<string, any> = {};
+    if (start_date) {
+      const startDateObj = new Date(start_date);
+      // যদি invalid date হয় তাহলে skip করবে
+      if (!isNaN(startDateObj.getTime())) {
+        dateFilter.$gte = startDateObj;
+      }
+    }
+
+    if (end_date) {
+      const endDateObj = new Date(end_date);
+      if (!isNaN(endDateObj.getTime())) {
+        // শেষ দিনের 23:59:59 পর্যন্ত include করা
+        endDateObj.setHours(23, 59, 59, 999);
+        dateFilter.$lte = endDateObj;
+      }
+    }
+
+    // ✅ কেবল valid date থাকলে condition push করবে
+    if (Object.keys(dateFilter).length > 0) {
+      andConditions.push({ createdAt: dateFilter });
+    }
+  }
+
+  // ✅ Other filters (except empty/null)
+  const validFilters = Object.entries(filtersData).filter(
+    ([, value]) => value !== undefined && value !== null && value !== ''
+  );
+
+  // Add filtering conditions
+
+  if (validFilters.length) {
+    andConditions.push({
+      $and: validFilters.map(([field, value]) => ({
+        [field]: value,
+      })),
+    });
+  }
+
+  // Destructure pagination options
+  const { page, limit, skip, sortBy, sortOrder } =
+    HelperPagination.calculationPagination(paginationOption);
+
+  // Define sort conditions
+  const sortConditions: Record<string, SortOrder> = {};
+  if (sortBy && sortOrder) {
+    sortConditions[sortBy] = sortOrder;
+  }
+
+  // Combine all conditions
+  const whereConditions =
+    andConditions.length > 0 ? { $and: andConditions } : {};
+
+  // Fetch the data from MongoDB
+  const result = await UsersModel.find(whereConditions)
+    .sort(sortConditions)
+    .skip(skip)
+    .limit(limit);
+
+  // ❗ Filtered total count
+  const total = await UsersModel.countDocuments(whereConditions);
+
+  // Return the response with metadata and data
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+    },
+    data: result,
+  };
+};
+
+export const UserServices = {
+  createdUser,
+  getAllUsers,
+};
