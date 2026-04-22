@@ -11,7 +11,7 @@ const moduleRoutes = [
     route: UserRoutes,
   },
   {
-    path: '/note',
+    path: '/notes',
     route: PostRoutes,
   },
 ];
