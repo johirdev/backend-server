@@ -3,6 +3,7 @@ import { validateRequest } from '../../middlewares/validateRequest';
 import { UserValidation } from './user.validation';
 import { UserController } from './user.controller';
 import { AdminTokenValidation } from '../../middlewares/adminTokenValidation';
+import { UserEmailValidation } from '../../middlewares/userTokenValidation';
 // atuthValidationRoute(),
 
 const router = express.Router();
@@ -16,16 +17,24 @@ router.post(
   AdminTokenValidation(['admin']),
   UserController.userCreate
 );
-router.get('/', 
+router.get(
+  '/',
   // AdminTokenValidation(['admin']),
-   UserController.AllUser);
-   
+  UserController.AllUser
+);
+
 router.delete(
   '/delete/:id',
   AdminTokenValidation(['admin']),
   UserController.deleteUser
 );
 router.patch('/update/:id', UserController.updateSingleUser);
+// only user profile update
+router.patch(
+  '/profile/:id',
+  UserEmailValidation(),
+  UserController.updateUserProfile
+);
 
 
 export const UserRoutes = router;

@@ -260,6 +260,47 @@ export const updateUser = async (
   return updatedUser;
 };
 
+export const updateUserProfile = async (
+  id: string,
+  user: Partial<IUser>
+): Promise<IUser | null> => {
+  const existingUser = await UsersModel.findById(id);
+  if (!existingUser) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'User not found', '');
+  }
+
+  // hash password if provided
+  if (user.password) {
+    user.password = await bcrypt.hash(
+      user.password,
+      Number(config.bcrypt_salt_round)
+    );
+  }
+
+  // allowed fields based on schema
+  const allowedFields: (keyof IUser)[] = ['name', 'email', 'password'];
+
+  const updateData: Partial<IUser> = {};
+
+  allowedFields.forEach(field => {
+    const value = user[field];
+    if (value !== undefined && value !== null) {
+      updateData[field] = value as any;
+    }
+  });
+
+  const updatedUser = await UsersModel.findByIdAndUpdate(id, updateData, {
+    new: true,
+    runValidators: true,
+  });
+
+  if (!updatedUser) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'User update failed', '');
+  }
+
+  return updatedUser;
+};
+
 const deleteSingelUser = async (id: string): Promise<void> => {
   const users = await UsersModel.findById(id);
   if (!users) {
@@ -274,5 +315,6 @@ export const UserServices = {
   userLogin,
   getAllUsers,
   updateUser,
+  updateUserProfile,
   deleteSingelUser,
 };
