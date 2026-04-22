@@ -12,17 +12,29 @@ import cookieParser from 'cookie-parser';
 
 app.use(bodyParser.json({ limit: '10mb' }));
 // cors use & cookieparse
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://192.168.31.103:3000',
+  'https://note-management-iota.vercel.app',
+];
+
 app.use(
   cors({
-    origin: [
-      'http://localhost:3000',
-      'http://192.168.31.103:3000',
-      'https://note-management-system-task.vercel.app',
-    ],
-    methods: ['GET', 'POST', 'DELETE', 'PATCH'],
-    credentials: true, // Allow credentials (cookies, etc.)
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true); // mobile apps / postman
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        return callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'DELETE', 'PATCH', 'OPTIONS'],
   })
 );
+
+app.options('*', cors());
 app.use(cookieParser());
 //data base first data load
 
