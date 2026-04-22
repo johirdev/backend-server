@@ -16,16 +16,17 @@ router.post(
   UserController.userCreate
 );
 
-router.get(
-  '/',
-  // TokenRoleAccess(['admin']),
-  UserController.AllUser
-);
+router.get('/', TokenRoleAccess(['admin']), UserController.AllUser);
 
 router.delete(
   '/delete/:id',
   TokenRoleAccess(['admin']),
   UserController.deleteUser
+);
+router.get(
+  '/singel-user/:id',
+  TokenRoleAccess(['user']),
+  UserController.getSingelUser
 );
 router.patch(
   '/update/:id',
@@ -35,7 +36,7 @@ router.patch(
 // only user profile update
 router.patch(
   '/profile/:id',
-  TokenRoleAccess(['user']),
+  TokenRoleAccess(['user', 'admin']),
   UserController.updateUserProfile
 );
 

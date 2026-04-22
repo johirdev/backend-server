@@ -44,14 +44,14 @@ export type IUserLogin = {
 export type ISearchUser = {
   name?: string;
   email?: string;
-  id?: string;
+  role?: string;
 };
 // update a user ruler
 export type IupdateRuler = {
   ruler: string;
 };
 
-export const userSearchableFields = ['name'];
+export const userSearchableFields = ['name', 'role'];
 
 // Create a new Model type that knows about IUserMethods...
 export type UserModel = Model<IUser, Record<string, unknown>>;

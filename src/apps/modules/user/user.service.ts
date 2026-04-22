@@ -263,41 +263,70 @@ export const updateUserProfile = async (
   id: string,
   user: Partial<IUser>
 ): Promise<IUser | null> => {
+  // 🔍 check user exists
   const existingUser = await UsersModel.findById(id);
+
   if (!existingUser) {
     throw new ApiError(httpStatus.NOT_FOUND, 'User not found', '');
   }
 
-  // hash password if provided
-  if (user.password) {
-    user.password = await bcrypt.hash(
+  // 🧾 allowed fields (NO password here)
+  const allowedFields: (keyof IUser)[] = ['name', 'email', 'interests'];
+
+  const updateData: Partial<IUser> = {};
+
+  // ✨ normal fields handling
+  allowedFields.forEach(field => {
+    const value = user[field];
+
+    if (value !== undefined && value !== null) {
+      if (field === 'interests') {
+        if (typeof value === 'string') {
+          updateData.interests = [value];
+        } else if (Array.isArray(value)) {
+          updateData.interests = value;
+        }
+      } else {
+        updateData[field] = value as any;
+      }
+    }
+  });
+
+  // 🔐 password handling (optional)
+  if (user.password && user.password.trim() !== '') {
+    updateData.password = await bcrypt.hash(
       user.password,
       Number(config.bcrypt_salt_round)
     );
   }
 
-  // allowed fields based on schema
-  const allowedFields: (keyof IUser)[] = ['name', 'email', 'password'];
-
-  const updateData: Partial<IUser> = {};
-
-  allowedFields.forEach(field => {
-    const value = user[field];
-    if (value !== undefined && value !== null) {
-      updateData[field] = value as any;
+  // 💾 update user
+  const updatedUser = await UsersModel.findByIdAndUpdate(
+    id,
+    { $set: updateData },
+    {
+      new: true,
+      runValidators: true,
     }
-  });
-
-  const updatedUser = await UsersModel.findByIdAndUpdate(id, updateData, {
-    new: true,
-    runValidators: true,
-  });
+  );
 
   if (!updatedUser) {
     throw new ApiError(httpStatus.NOT_FOUND, 'User update failed', '');
   }
 
   return updatedUser;
+};
+
+export const getSingeUser = async (id: string): Promise<IUser | null> => {
+  // build query
+  const user = await UsersModel.findById(id).select('+password');
+
+  // not found check
+  if (!user) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'User not found', '');
+  }
+
+  return user;
 };
 
 const deleteSingelUser = async (id: string): Promise<void> => {
@@ -354,6 +383,7 @@ export const UserServices = {
   getAllUser,
   updateUser,
   updateUserProfile,
+  getSingeUser,
   deleteSingelUser,
   groupUsersByInterests,
   getUserPosts,

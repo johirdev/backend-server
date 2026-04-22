@@ -18,7 +18,7 @@ export const globalErrorHandeler: ErrorRequestHandler = (
 ) => {
   //when development or production project
 
-  config.evn === 'development'
+  config.env === 'development'
     ? // eslint-disable-next-line no-console
       console.log('Project Run Development Mode ~ ', error)
     : console.log('Project Run Production Mode ~ ', error);
@@ -69,7 +69,7 @@ export const globalErrorHandeler: ErrorRequestHandler = (
     success: false,
     message,
     errorMessages,
-    stack: config.evn !== 'production' ? error?.stack : undefined,
+    stack: config.env !== 'production' ? error?.stack : undefined,
   });
 
   next();

@@ -17,7 +17,7 @@ app.use(
     origin: [
       'http://localhost:3000',
       'http://192.168.31.103:3000',
-
+      'https://note-management-system-task.vercel.app',
     ],
     methods: ['GET', 'POST', 'DELETE', 'PATCH'],
     credentials: true, // Allow credentials (cookies, etc.)

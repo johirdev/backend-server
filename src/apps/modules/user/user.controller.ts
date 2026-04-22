@@ -117,6 +117,17 @@ const groupByInterests = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getSingelUser = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const result = await UserServices.getSingeUser(id);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    data: result,
+    message: 'Single user fetched successfully',
+  });
+});
 const getUserPosts = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
   const result = await UserServices.getUserPosts(id);
@@ -133,6 +144,7 @@ const getUserPosts = catchAsync(async (req: Request, res: Response) => {
 export const UserController = {
   userCreate,
   login,
+  getSingelUser,
   AllUser,
   groupByInterests,
   getUserPosts,
