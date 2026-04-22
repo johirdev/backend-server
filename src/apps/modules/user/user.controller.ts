@@ -9,33 +9,39 @@ import { queryPick } from '../../../shared/queryPick';
 
 const userCreate = catchAsync(async (req: Request, res: Response) => {
   const user = req.body;
+
   const result = await UserServices.createdUser(user);
-  // Formating result returen value
-  if (result !== null) {
-    const { refreshToken, ...others } = result;
 
-    // Set refresh token in cookies
-    const cookiesOption = {
-      secure: config.evn === 'production',
-      httpOnly: true,
-    };
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    data: result,
+    message: 'User Create successfully',
+  });
+});
 
-    res.cookie('refreshToken', refreshToken, cookiesOption);
+const login = catchAsync(async (req: Request, res: Response) => {
+  const loginData = req.body;
 
-    sendResponse<IUserLogin>(res, {
-      statusCode: httpStatus.OK,
-      success: true,
-      data: others,
-      message: 'Registration Successfully',
-    });
-  } else {
-    // Handle the case where login is unsuccessful
-    sendResponse<IUserLogin>(res, {
-      statusCode: httpStatus.UNAUTHORIZED,
-      success: false,
-      message: 'Registration failed. Invalid credentials.',
-    });
-  }
+  const result = await UserServices.userLogin(loginData);
+
+  const { refresh_token, ...others } = result;
+
+  // 🍪 Cookie options
+  const cookiesOption = {
+    secure: config.env === 'production',
+    httpOnly: true,
+    sameSite: 'strict' as const,
+  };
+  // Set refresh token in cookie
+  res.cookie('refresh_token', refresh_token, cookiesOption);
+
+  sendResponse<IUserLogin>(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    data: others,
+    message: 'User login successful',
+  });
 });
 
 const AllUser = catchAsync(async (req: Request, res: Response) => {
@@ -69,6 +75,7 @@ export const deleteUser = catchAsync(async (req: Request, res: Response) => {
 // exported there CreateUserController
 export const UserController = {
   userCreate,
+  login,
   AllUser,
   deleteUser,
 };

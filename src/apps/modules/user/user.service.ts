@@ -1,14 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import httpStatus from 'http-status';
 import { ApiError } from '../../../errors/ApiError';
-import { ISearchUser, IUser, IUserLogin } from './user.interface';
+import { ISearchUser, IUser } from './user.interface';
 import { UsersModel } from './user.model';
 import bcrypt from 'bcrypt';
 import { Secret } from 'jsonwebtoken';
 import config from '../../../config';
 import { jwtHelpers } from '../../../helpers/jwtHelpers';
 
-import { handleMongoError } from '../../../helpers/HendelMongosError';
 import { IPaginationOpton } from '../../../interfaces/pagination';
 import { IGenaricRespons } from '../../../interfaces/common';
 import { userSearchableFields } from './user.constant';
@@ -16,11 +15,12 @@ import { HelperPagination } from '../../../helpers/paginationHelper';
 import { SortOrder } from 'mongoose';
 
 // -----> create A User business logic ------->
-const createdUser = async (user: IUser): Promise<IUserLogin | null> => {
+const createdUser = async (user: IUser): Promise<IUser | null> => {
   const { name, email, password, role, interests } = user;
 
   const sanitizedEmail = email?.trim().toLowerCase();
-  // Trim and lowercase email before querying the database
+
+  // Check existing user
   if (sanitizedEmail) {
     const existingUser = await UsersModel.findOne({ email: sanitizedEmail });
 
@@ -33,6 +33,7 @@ const createdUser = async (user: IUser): Promise<IUserLogin | null> => {
     }
   }
 
+  // Hash password
   const hashedPassword = await bcrypt.hash(
     password,
     Number(config.bcrypt_salt_round)
@@ -50,46 +51,72 @@ const createdUser = async (user: IUser): Promise<IUserLogin | null> => {
     password: hashedPassword,
   };
 
-  let created = null;
-  try {
-    created = await UsersModel.create(userToCreate);
-  } catch (error) {
-    handleMongoError(error, 'already exists.', 'Please use a different');
-    throw new ApiError(500, 'User creation failed', '');
-  }
+  const created = await UsersModel.create(userToCreate);
 
   if (!created) {
     throw new ApiError(500, 'User creation failed', '');
   }
 
-  const { _id } = created;
-  const id = _id.toString();
+  return created;
+};
 
-  const accessToken = jwtHelpers.createToken(
+const userLogin = async (payload: { email: string; password: string }) => {
+  const { email, password } = payload;
+
+  // 1️⃣ Check required fields
+  if (!email || !password) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      'Email and password are required',
+      ''
+    );
+  }
+
+  // 2️⃣ Find user (IMPORTANT: include password)
+  const user = await UsersModel.findOne({ email }).select('+password');
+
+  if (!user) {
+    throw new ApiError(
+      httpStatus.NOT_FOUND,
+      'User not found with this email',
+      ''
+    );
+  }
+
+  // 3️⃣ Compare password
+  const isPasswordMatch = await bcrypt.compare(
+    password,
+    user.password as string
+  );
+
+  if (!isPasswordMatch) {
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'Invalid password', '');
+  }
+
+  // 4️⃣ Create Access Token
+  const access_token = jwtHelpers.createToken(
     {
-      id,
-      name,
-      email: sanitizedEmail,
-      role: role || 'user',
-      interests: Array.isArray(interests)
-        ? interests
-        : interests
-        ? [interests]
-        : [],
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      interests: user.interests || [],
     },
     config.jwt.secret as Secret,
     config.jwt.expires_in as string
   );
 
-  const refreshToken = jwtHelpers.createToken(
-    { id },
+  // 5️⃣ Create Refresh Token
+  const refresh_token = jwtHelpers.createToken(
+    { id: user._id },
     config.jwt.secret as Secret,
     config.jwt.refresh_expires_in as string
   );
 
+  // 6️⃣ Return tokens
   return {
-    accessToken,
-    refreshToken,
+    access_token,
+    refresh_token,
   };
 };
 
@@ -203,6 +230,7 @@ const deleteSingelUser = async (id: string): Promise<void> => {
 
 export const UserServices = {
   createdUser,
+  userLogin,
   getAllUsers,
   deleteSingelUser,
 };

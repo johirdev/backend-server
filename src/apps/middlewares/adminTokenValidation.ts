@@ -20,7 +20,7 @@ export const AdminTokenValidation =
       if (!authHeader?.startsWith('Bearer ')) {
         throw new ApiError(
           httpStatus.UNAUTHORIZED,
-          'Please log in to access this resource.',
+          'Access denied. Please log in to your account to continue.',
           ''
         );
       }

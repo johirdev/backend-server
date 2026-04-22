@@ -11,6 +11,7 @@ const router = express.Router();
 router.post(
   '/create',
   validateRequest(UserValidation.createUserZodSchema),
+  AdminTokenValidation(['admin']),
   UserController.userCreate
 );
 router.get('/', AdminTokenValidation(['admin']), UserController.AllUser);
@@ -19,5 +20,7 @@ router.delete(
   AdminTokenValidation(['admin']),
   UserController.deleteUser
 );
+// login user/admin
+router.post('/login', UserController.login);
 
 export const UserRoutes = router;

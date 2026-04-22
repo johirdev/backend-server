@@ -7,15 +7,13 @@ export type IUser = {
   name: string;
   email: string;
   password: string;
-  // role can be 'user' or 'admin'
   role: 'user' | 'admin' | string;
-  // interests is an array of strings
   interests: string[];
 };
 // user Longin Token Interface
 export type IUserLogin = {
-  accessToken?: string;
-  refreshToken?: string;
+  access_token?: string;
+  refresh_token?: string;
 };
 
 //get searching all user
