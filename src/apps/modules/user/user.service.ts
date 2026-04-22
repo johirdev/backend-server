@@ -192,7 +192,17 @@ const getAllUsers = async (
   };
 };
 
+const deleteSingelUser = async (id: string): Promise<void> => {
+  const users = await UsersModel.findById(id);
+  if (!users) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'User not found', '');
+  }
+
+  await UsersModel.findByIdAndDelete(id);
+};
+
 export const UserServices = {
   createdUser,
   getAllUsers,
+  deleteSingelUser,
 };

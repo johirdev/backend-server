@@ -58,8 +58,17 @@ const AllUser = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-// exported there CreateUserController | Or imported there user.routes.ts file |
+export const deleteUser = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  await UserServices.deleteSingelUser(id);
+  res.status(200).json({
+    message: 'User Deleted successfully',
+  });
+});
+
+// exported there CreateUserController
 export const UserController = {
   userCreate,
   AllUser,
+  deleteUser,
 };

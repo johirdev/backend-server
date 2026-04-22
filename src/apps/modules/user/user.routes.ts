@@ -13,12 +13,11 @@ router.post(
   validateRequest(UserValidation.createUserZodSchema),
   UserController.userCreate
 );
-// get all users
 router.get('/', AdminTokenValidation(['admin']), UserController.AllUser);
-// router.delete(
-//   '/delete/:id',
-//   AdminTokenValidation(['admin']),
-//   UserController.deleteUser
-// );
+router.delete(
+  '/delete/:id',
+  AdminTokenValidation(['admin']),
+  UserController.deleteUser
+);
 
 export const UserRoutes = router;
