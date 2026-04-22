@@ -2,6 +2,30 @@
 
 import { Model } from 'mongoose';
 
+export const INTERESTS = [
+  'tech',
+  'programming',
+  'frontend',
+  'backend',
+  'fullstack',
+  'ai',
+  'gaming',
+  'movies',
+  'music',
+  'news',
+  'business',
+  'crypto',
+  'football',
+  'cricket',
+  'fitness',
+  'education',
+  'books',
+  'travel',
+  'food',
+  'career',
+  'freelancing',
+];
+
 // Created User Modal-Schema property inferface
 export type IUser = {
   name: string;
@@ -26,6 +50,8 @@ export type ISearchUser = {
 export type IupdateRuler = {
   ruler: string;
 };
+
+export const userSearchableFields = ['name'];
 
 // Create a new Model type that knows about IUserMethods...
 export type UserModel = Model<IUser, Record<string, unknown>>;

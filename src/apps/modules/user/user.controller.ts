@@ -45,7 +45,7 @@ const login = catchAsync(async (req: Request, res: Response) => {
 });
 
 const AllUser = catchAsync(async (req: Request, res: Response) => {
-  const filtering = queryPick(req.query, ['name', 'email']);
+  const filtering = queryPick(req.query, ['searchTerm', 'name']);
 
   // pagination option property field
   const pagintionField = ['page', 'limit', 'sortBy', 'sortOrder'];
@@ -53,7 +53,7 @@ const AllUser = catchAsync(async (req: Request, res: Response) => {
   // querypick is costom funtcion
   const paginationOption = queryPick(req.query, pagintionField);
 
-  const result = await UserServices.getAllUsers(filtering, paginationOption);
+  const result = await UserServices.getAllUser(filtering, paginationOption);
 
   sendResponse<ISearchUser[]>(res, {
     statusCode: httpStatus.OK,
@@ -61,29 +61,6 @@ const AllUser = catchAsync(async (req: Request, res: Response) => {
     meta: result?.meta,
     data: result?.data,
     message: 'searching users successfully',
-  });
-});
-
-const groupByInterests = catchAsync(async (req: Request, res: Response) => {
-  const result = await UserServices.groupUsersByInterests();
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    data: result,
-    message: 'Users grouped by interests',
-  });
-});
-
-const getUserPosts = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const result = await UserServices.getUserPosts(id);
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    data: result,
-    message: 'User posts retrieved',
   });
 });
 
@@ -121,8 +98,34 @@ export const updateUserProfile = catchAsync(
 export const deleteUser = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
   await UserServices.deleteSingelUser(id);
-  res.status(200).json({
-    message: 'User Deleted successfully',
+
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: 'user deleted successfully',
+  });
+});
+
+const groupByInterests = catchAsync(async (req: Request, res: Response) => {
+  const result = await UserServices.groupUsersByInterests();
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    data: result,
+    message: 'Users grouped by interests',
+  });
+});
+
+const getUserPosts = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const result = await UserServices.getUserPosts(id);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    data: result,
+    message: 'User posts retrieved',
   });
 });
 

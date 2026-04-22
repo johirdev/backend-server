@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import httpStatus from 'http-status';
 import { ApiError } from '../../../errors/ApiError';
-import { ISearchUser, IUser } from './user.interface';
+import { ISearchUser, IUser, userSearchableFields } from './user.interface';
 import { UsersModel } from './user.model';
 import bcrypt from 'bcrypt';
 import { Secret } from 'jsonwebtoken';
@@ -10,7 +10,6 @@ import { jwtHelpers } from '../../../helpers/jwtHelpers';
 
 import { IPaginationOpton } from '../../../interfaces/pagination';
 import { IGenaricRespons } from '../../../interfaces/common';
-import { userSearchableFields } from './user.constant';
 import { HelperPagination } from '../../../helpers/paginationHelper';
 import mongoose, { PipelineStage, SortOrder } from 'mongoose';
 
@@ -120,7 +119,7 @@ const userLogin = async (payload: { email: string; password: string }) => {
   };
 };
 
-const getAllUsers = async (
+const getAllUser = async (
   filtering: Record<string, any>,
   paginationOption: IPaginationOpton
 ): Promise<IGenaricRespons<ISearchUser[]> | null> => {
@@ -352,7 +351,7 @@ const getUserPosts = async (userId: string) => {
 export const UserServices = {
   createdUser,
   userLogin,
-  getAllUsers,
+  getAllUser,
   updateUser,
   updateUserProfile,
   deleteSingelUser,

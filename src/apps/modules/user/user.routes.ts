@@ -2,9 +2,7 @@ import express from 'express';
 import { validateRequest } from '../../middlewares/validateRequest';
 import { UserValidation } from './user.validation';
 import { UserController } from './user.controller';
-import { AdminTokenValidation } from '../../middlewares/adminTokenValidation';
-import { UserEmailValidation } from '../../middlewares/userTokenValidation';
-
+import { TokenRoleAccess } from '../../middlewares/TokenRoleAccess';
 
 const router = express.Router();
 // login user/admin
@@ -14,37 +12,45 @@ router.post('/login', UserController.login);
 router.post(
   '/create',
   validateRequest(UserValidation.createUserZodSchema),
-  AdminTokenValidation(['admin']),
+  TokenRoleAccess(['admin']),
   UserController.userCreate
 );
 
 router.get(
   '/',
-  // AdminTokenValidation(['admin']),
+  // TokenRoleAccess(['admin']),
   UserController.AllUser
 );
 
 router.delete(
   '/delete/:id',
-  AdminTokenValidation(['admin']),
+  TokenRoleAccess(['admin']),
   UserController.deleteUser
 );
-router.patch('/update/:id', UserController.updateSingleUser);
+router.patch(
+  '/update/:id',
+  TokenRoleAccess(['admin']),
+  UserController.updateSingleUser
+);
 // only user profile update
 router.patch(
   '/profile/:id',
-  UserEmailValidation(),
+  TokenRoleAccess(['user']),
   UserController.updateUserProfile
 );
 
 // Group users by interests (admin only)
 router.get(
   '/group-by-interests',
-  AdminTokenValidation(['admin']),
+  TokenRoleAccess(['admin']),
   UserController.groupByInterests
 );
 
 // Get all posts for a specific user (user or admin)
-router.get('/:id/posts', UserEmailValidation(), UserController.getUserPosts);
+router.get(
+  '/:id/posts',
+  TokenRoleAccess(['user']),
+  UserController.getUserPosts
+);
 
 export const UserRoutes = router;

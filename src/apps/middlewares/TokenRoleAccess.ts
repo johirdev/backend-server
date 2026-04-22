@@ -11,8 +11,9 @@ type DecodedToken = JwtPayload & {
   role: string;
 };
 
-export const UserEmailValidation =
-  () => async (req: Request, res: Response, next: NextFunction) => {
+export const TokenRoleAccess =
+  (allowedRoles: string[] = []) =>
+  async (req: Request, res: Response, next: NextFunction) => {
     try {
       // 1. Check token
       const authHeader = req.headers.authorization;
@@ -40,7 +41,7 @@ export const UserEmailValidation =
         );
       }
 
-      // 3. Find user from DB
+      // 3. Get user
       const user = await UsersModel.findById(decoded.id).select(
         '_id email role'
       );
@@ -53,18 +54,18 @@ export const UserEmailValidation =
         );
       }
 
-      // 4. Email match check (main rule)
-      if (user.email !== decoded.email) {
+      // 4. Optional role check (admin/user control)
+      if (allowedRoles.length && !allowedRoles.includes(user.role)) {
         throw new ApiError(
           httpStatus.FORBIDDEN,
-          'You are not allowed to access this resource.',
+          'You do not have permission to access this resource.',
           ''
         );
       }
 
-      // 5. Attach user to request
+      // 5. Attach user
       req.user = {
-        id: user._id,
+        id: user._id.toString(),
         email: user.email,
         role: user.role,
       };
