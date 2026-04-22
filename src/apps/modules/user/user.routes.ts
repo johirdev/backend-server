@@ -4,7 +4,7 @@ import { UserValidation } from './user.validation';
 import { UserController } from './user.controller';
 import { AdminTokenValidation } from '../../middlewares/adminTokenValidation';
 import { UserEmailValidation } from '../../middlewares/userTokenValidation';
-// atuthValidationRoute(),
+
 
 const router = express.Router();
 // login user/admin
@@ -17,6 +17,7 @@ router.post(
   AdminTokenValidation(['admin']),
   UserController.userCreate
 );
+
 router.get(
   '/',
   // AdminTokenValidation(['admin']),
@@ -36,5 +37,14 @@ router.patch(
   UserController.updateUserProfile
 );
 
+// Group users by interests (admin only)
+router.get(
+  '/group-by-interests',
+  AdminTokenValidation(['admin']),
+  UserController.groupByInterests
+);
+
+// Get all posts for a specific user (user or admin)
+router.get('/:id/posts', UserEmailValidation(), UserController.getUserPosts);
 
 export const UserRoutes = router;

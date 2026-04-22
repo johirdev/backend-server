@@ -12,7 +12,7 @@ import { IPaginationOpton } from '../../../interfaces/pagination';
 import { IGenaricRespons } from '../../../interfaces/common';
 import { userSearchableFields } from './user.constant';
 import { HelperPagination } from '../../../helpers/paginationHelper';
-import { SortOrder } from 'mongoose';
+import mongoose, { PipelineStage, SortOrder } from 'mongoose';
 
 // -----> create A User business logic ------->
 const createdUser = async (user: IUser): Promise<IUser | null> => {
@@ -310,6 +310,45 @@ const deleteSingelUser = async (id: string): Promise<void> => {
   await UsersModel.findByIdAndDelete(id);
 };
 
+// Aggregation: Group users by interests (single aggregate call)
+const groupUsersByInterests = async () => {
+  const pipeline: PipelineStage[] = [
+    { $unwind: { path: '$interests', preserveNullAndEmptyArrays: false } },
+    {
+      $group: {
+        _id: '$interests',
+        users: { $push: { _id: '$_id', name: '$name', email: '$email' } },
+        count: { $sum: 1 },
+      },
+    },
+    { $sort: { count: -1 } },
+  ];
+
+  const result = await UsersModel.aggregate(pipeline);
+  return result;
+};
+
+// Aggregation: retrieve all posts belonging to a particular user using $lookup
+const getUserPosts = async (userId: string) => {
+  const ObjectId = mongoose.Types.ObjectId;
+
+  const pipeline: PipelineStage[] = [
+    { $match: { _id: new ObjectId(userId) } },
+    {
+      $lookup: {
+        from: 'posts',
+        localField: '_id',
+        foreignField: 'user',
+        as: 'posts',
+      },
+    },
+    { $project: { _id: 1, name: 1, email: 1, posts: 1 } },
+  ];
+
+  const res = await UsersModel.aggregate(pipeline);
+  return res[0] || { posts: [] };
+};
+
 export const UserServices = {
   createdUser,
   userLogin,
@@ -317,4 +356,6 @@ export const UserServices = {
   updateUser,
   updateUserProfile,
   deleteSingelUser,
+  groupUsersByInterests,
+  getUserPosts,
 };
